@@ -4,9 +4,8 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 import io
 import os
 
-# ========== 1. 字型載入邏輯（增強防呆版） ==========
+# ========== 1. 字型載入邏輯 ==========
 def load_handwriting_font(font_size):
-    # 優先讀取與 app.py 放在同一個資料夾的字型檔
     current_dir = os.path.dirname(os.path.abspath(__file__))
     font_paths = [
         os.path.join(current_dir, "ChenYuluoyan-Thin-Monospaced.ttf"),
@@ -20,7 +19,6 @@ def load_handwriting_font(font_size):
         except:
             continue
             
-    # 如果真的都找不到，使用系統預設字型，避免網頁卡死
     try:
         return ImageFont.load_default()
     except:
@@ -100,9 +98,10 @@ def draw_text_with_shadow(draw_obj, text, position, text_font, align="left", fil
     draw_obj.text((render_x, render_y), text, font=text_font, fill=fill_color)
 
 # ========== 3. Streamlit 網頁介面 ==========
-st.set_page_config(page_title="🌸 智慧長輩早安圖生成器", layout="centered")
-st.title("🌸 智慧避讓長輩早安圖生成器")
-st.write("上傳一張照片，AI 會自動尋找空白處並幫你寫上漂亮的手寫長輩祝賀詞！")
+# 網頁標題與內容精簡為「早安圖生成器」
+st.set_page_config(page_title="🌸 早安圖生成器", layout="centered")
+st.title("🌸 早安圖生成器")
+st.write("上傳一張照片，網頁會自動尋找最空曠的角落，幫你填上漂亮的手寫祝福語！")
 
 # 檔案上傳器
 uploaded_file = st.file_uploader("📸 請選擇並上傳您的照片", type=["jpg", "jpeg", "png", "webp"])
@@ -156,7 +155,7 @@ if uploaded_file is not None:
             draw_text_with_shadow(draw, line3_text, (l3x, l3y), body_font, align=align, fill_color="#FFFFFF", font_size=body_font_size)
 
             # 顯示結果
-            st.success(f"🎉 製作完成！AI 已自動避讓並將文字置於【{corner_name}】")
+            st.success(f"🎉 製作完成！文字已自動置於【{corner_name}】")
             st.image(img_to_draw, caption="生成的早安圖成果", use_container_width=True)
 
             # 將結果轉為記憶體二進位格式以供下載
@@ -170,4 +169,3 @@ if uploaded_file is not None:
                 file_name="good_morning.jpg",
                 mime="image/jpeg"
             )
-            
