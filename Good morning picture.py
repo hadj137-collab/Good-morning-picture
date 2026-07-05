@@ -4,13 +4,14 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 import io
 import os
 
-# ========== 1. 字型載入邏輯 ==========
+# ========== 1. 字型載入邏輯（增強防呆版） ==========
 def load_handwriting_font(font_size):
-    # 在雲端伺服器上，建議將字型檔與代碼放在同一個資料夾
+    # 優先讀取與 app.py 放在同一個資料夾的字型檔
+    current_dir = os.path.dirname(os.path.abspath(__file__))
     font_paths = [
-        "ChenYuluoyan-Thin-Monospaced.ttf", 
-        "JasonHandwriting6p.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf" # Linux 伺服器預設防呆
+        os.path.join(current_dir, "ChenYuluoyan-Thin-Monospaced.ttf"),
+        "ChenYuluoyan-Thin-Monospaced.ttf",
+        "JasonHandwriting6p.ttf"
     ]
     for path in font_paths:
         try:
@@ -18,7 +19,12 @@ def load_handwriting_font(font_size):
                 return ImageFont.truetype(path, font_size)
         except:
             continue
-    return None
+            
+    # 如果真的都找不到，使用系統預設字型，避免網頁卡死
+    try:
+        return ImageFont.load_default()
+    except:
+        return None
 
 # ========== 2. 核心：評估角落並返回三行文字座標 ==========
 def find_best_corner_positions(image, title_font_size, body_font_size):
@@ -49,6 +55,7 @@ def find_best_corner_positions(image, title_font_size, body_font_size):
         scores[name] = score
 
     best_corner = min(scores, key=scores.get)
+    
     margin_x = int(width * 0.06)
     margin_y = int(height * 0.06)
     line_gap = int(body_font_size * 0.35) 
@@ -69,10 +76,12 @@ def find_best_corner_positions(image, title_font_size, body_font_size):
         align = "right"
         x1, x2, x3 = width - margin_x, width - margin_x, width - margin_x
 
-    return align, x1, y1, x2, y2, x3, y3
+    return align, best_corner, x1, y1, x2, y2, x3, y3
 
 def draw_text_with_shadow(draw_obj, text, position, text_font, align="left", fill_color="yellow", shadow_color="black", font_size=40):
     x, y = position
+    if text_font is None:
+        return
     try:
         bbox = text_font.getbbox(text)
         tw = bbox[2] - bbox[0]
@@ -103,7 +112,7 @@ if uploaded_file is not None:
     raw_image = Image.open(uploaded_file).convert("RGB")
     image = ImageOps.exif_transpose(raw_image)
     
-    st.image(image, caption="已上傳的照片", use_container_width=True)
+    st.image(image, caption="📷 已成功讀取上傳的照片", use_container_width=True)
 
     # 祝福語選單
     st.subheader("✍️ 選擇或自訂祝福語")
@@ -128,7 +137,7 @@ if uploaded_file is not None:
     line1_text = "早安"
 
     # 開始製作按鈕
-    if st.button("🚀 開始製作早安圖"):
+    if st.button("🚀 開始製作早安圖", type="primary"):
         with st.spinner("智慧分析畫面並排版中..."):
             img_to_draw = image.copy()
             width, height = img_to_draw.size
@@ -140,15 +149,15 @@ if uploaded_file is not None:
             title_font = load_handwriting_font(title_font_size)
             body_font = load_handwriting_font(body_font_size)
 
-            align, l1x, l1y, l2x, l2y, l3x, l3y = find_best_corner_positions(img_to_draw, title_font_size, body_font_size)
+            align, corner_name, l1x, l1y, l2x, l2y, l3x, l3y = find_best_corner_positions(img_to_draw, title_font_size, body_font_size)
 
             draw_text_with_shadow(draw, line1_text, (l1x, l1y), title_font, align=align, fill_color="#FFD700", font_size=title_font_size)
             draw_text_with_shadow(draw, line2_text, (l2x, l2y), body_font, align=align, fill_color="#FFFFFF", font_size=body_font_size)
             draw_text_with_shadow(draw, line3_text, (l3x, l3y), body_font, align=align, fill_color="#FFFFFF", font_size=body_font_size)
 
             # 顯示結果
-            st.success("🎉 製作完成！")
-            st.image(img_to_draw, caption="生成的早安圖", use_container_width=True)
+            st.success(f"🎉 製作完成！AI 已自動避讓並將文字置於【{corner_name}】")
+            st.image(img_to_draw, caption="生成的早安圖成果", use_container_width=True)
 
             # 將結果轉為記憶體二進位格式以供下載
             img_byte_arr = io.BytesIO()
@@ -161,3 +170,4 @@ if uploaded_file is not None:
                 file_name="good_morning.jpg",
                 mime="image/jpeg"
             )
+            
