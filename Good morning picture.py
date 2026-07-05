@@ -100,7 +100,7 @@ def draw_text_with_shadow(draw_obj, text, position, text_font, align="left", fil
 # ========== 3. Streamlit 網頁介面 ==========
 st.set_page_config(page_title="🌸 早安圖生成器", layout="centered")
 
-# 【僅調整此處】使用 HTML 語法將標題縮小（h2），確保手機畫面維持在一排不折行
+# 使用 HTML 語法將標題縮小（h2），確保手機畫面維持在一排不折行
 st.markdown("<h2 style='text-align: center; margin-bottom: 10px;'>🌸 早安圖生成器</h2>", unsafe_allow_html=True)
 st.write("上傳一張照片，網頁會自動尋找最空曠的角落，幫你填上漂亮的手寫祝福語！")
 
@@ -151,9 +151,10 @@ if uploaded_file is not None:
 
             align, corner_name, l1x, l1y, l2x, l2y, l3x, l3y = find_best_corner_positions(img_to_draw, title_font_size, body_font_size)
 
-            draw_text_with_shadow(draw, line1_text, (l1x, l1y), title_font, align=align, fill_color="#FFD700", font_size=title_font_size)
-            draw_text_with_shadow(draw, line2_text, (l2x, l2y), body_font, align=align, fill_color="#FFFFFF", font_size=body_font_size)
-            draw_text_with_shadow(draw, line3_text, (l3x, l3y), body_font, align=align, fill_color="#FFFFFF", font_size=body_font_size)
+            # 修正參數填寫順序，確保完美執行不卡死
+            draw_text_with_shadow(draw, line1_text, (l1x, l1y), title_font, align, "#FFD700", "black", title_font_size)
+            draw_text_with_shadow(draw, line2_text, (l2x, l2y), body_font, align, "#FFFFFF", "black", body_font_size)
+            draw_text_with_shadow(draw, line3_text, (l3x, l3y), body_font, align, "#FFFFFF", "black", body_font_size)
 
             # 顯示結果
             st.success(f"🎉 製作完成！文字已自動置於【{corner_name}】")
