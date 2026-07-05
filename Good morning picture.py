@@ -76,13 +76,16 @@ def find_best_corner_positions(image, title_font_size, body_font_size):
 
     return align, best_corner, x1, y1, x2, y2, x3, y3
 
+# 完美解決新版 Pillow 計算寬度的安全函數
 def draw_text_with_shadow(draw_obj, text, position, text_font, align="left", fill_color="yellow", shadow_color="black", font_size=40):
     x, y = position
     if text_font is None:
         return
+    
+    # 使用 getmask().getbbox() 安全精確計算寬度，相容新舊版 Pillow，不崩潰
     try:
-        bbox = text_font.getbbox(text)
-        tw = bbox[2] - bbox[0]
+        bbox = text_font.getmask(text).getbbox()
+        tw = bbox[2] - bbox[0] if bbox else font_size * len(text)
     except Exception:
         tw = font_size * len(text)
         
@@ -98,16 +101,16 @@ def draw_text_with_shadow(draw_obj, text, position, text_font, align="left", fil
     draw_obj.text((render_x, render_y), text, font=text_font, fill=fill_color)
 
 # ========== 3. Streamlit 網頁介面 ==========
-# 網頁標題與內容精簡為「早安圖生成器」
 st.set_page_config(page_title="🌸 早安圖生成器", layout="centered")
-st.title("🌸 早安圖生成器")
+
+# 使用 HTML 語法強制限制標題大小，確保在手機上不分成兩排
+st.markdown("<h2 style='text-align: center; margin-bottom: 10px;'>🌸 早安圖生成器</h2>", unsafe_allow_html=True)
 st.write("上傳一張照片，網頁會自動尋找最空曠的角落，幫你填上漂亮的手寫祝福語！")
 
 # 檔案上傳器
 uploaded_file = st.file_uploader("📸 請選擇並上傳您的照片", type=["jpg", "jpeg", "png", "webp"])
 
 if uploaded_file is not None:
-    # 讀取並自動旋轉修正
     raw_image = Image.open(uploaded_file).convert("RGB")
     image = ImageOps.exif_transpose(raw_image)
     
@@ -150,15 +153,13 @@ if uploaded_file is not None:
 
             align, corner_name, l1x, l1y, l2x, l2y, l3x, l3y = find_best_corner_positions(img_to_draw, title_font_size, body_font_size)
 
-            draw_text_with_shadow(draw, line1_text, (l1x, l1y), title_font, align=align, fill_color="#FFD700", font_size=title_font_size)
+            draw_text_with_shadow(draw, line1_text, (l1x, l1y), title_font, align=align, fill=fill_color="#FFD700", font_size=title_font_size)
             draw_text_with_shadow(draw, line2_text, (l2x, l2y), body_font, align=align, fill_color="#FFFFFF", font_size=body_font_size)
             draw_text_with_shadow(draw, line3_text, (l3x, l3y), body_font, align=align, fill_color="#FFFFFF", font_size=body_font_size)
 
-            # 顯示結果
             st.success(f"🎉 製作完成！文字已自動置於【{corner_name}】")
             st.image(img_to_draw, caption="生成的早安圖成果", use_container_width=True)
 
-            # 將結果轉為記憶體二進位格式以供下載
             img_byte_arr = io.BytesIO()
             img_to_draw.save(img_byte_arr, format='JPEG', quality=95)
             img_byte_arr = img_byte_arr.getvalue()
